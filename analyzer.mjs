@@ -14,6 +14,14 @@ export function analyze(pages,name='report.pdf') {
    if(/No Relevant Data/i.test(line))s.noData=true;
    if(!/^\d+\s/.test(line))continue;
    const tok=line.split(/\s+/); let row=null;
+   if(current==='Firewall Policy Changes FG'){
+    const m=line.match(/^(\d+)\s+(\S+)\s+(\S+)\s+(.+?)\s+(\d+)$/);
+    if(m)row={index:+m[1],user:m[2],action:m[3],message:m[4],count:+m[5]};
+   }
+   if(current==='Firewall Audit FG'){
+    const m=line.match(new RegExp('^(\\d+)\\s+(\\S+)\\s+('+ip+'|-)\\s+(\\S+)\\s+(.+?)\\s+(\\d+)$'));
+    if(m)row={index:+m[1],user:m[2],source:m[3],action:m[4],message:m[5],count:+m[6]};
+   }
    if(current==='Third Party VPN'&&tok.length===8&&new RegExp('^'+ip+'$').test(tok[1])&&/^\d+$/.test(tok[7]))row={index:+tok[0],source:tok[1],destination:tok[2],status:tok[3],tunnel:tok[4],role:tok[5],count:+tok[7]};
    // PDF text extraction can tokenize the VPN table into seven fields, as in the supplied report.
    if(current==='Third Party VPN'&&tok.length===7&&new RegExp('^'+ip+'$').test(tok[1])&&/^\d+$/.test(tok[6]))row={index:+tok[0],source:tok[1],destination:tok[2],status:tok[3],tunnel:tok[4],role:tok[5],count:+tok[6]};

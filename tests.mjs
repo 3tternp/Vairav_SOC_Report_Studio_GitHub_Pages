@@ -14,6 +14,28 @@ const unparsed=analyze(['SSH Connections CP\n1 unknown layout']);assert.equal(un
 assert.equal(analyze(['random document']).total,0);
 const missing=analyze(['SSH Connections CP\n1 10.0.0.1 10.0.0.2 Accept 2\n3 10.0.0.1 10.0.0.3 Accept 3']);assert.ok(missing.warnings.some(s=>s.includes('gaps')));
 let model=basic;
+const firewall=analyze(['Firewall Policy Changes FG\n1 admin Edit - 2\n2 operator Edit Policy updated by administrator 10','Firewall Audit FG\n1 admin 10.0.0.1 login - 7\n2 admin 10.0.0.1 logout Administrator logged out 4']);
+assert.equal(firewall.coverage[0].count,12);assert.equal(firewall.coverage[8].count,11);
+assert.equal(firewall.coverage[0].rows[1].message,'Policy updated by administrator');
+assert.equal(firewall.coverage[8].rows[1].message,'Administrator logged out');
+assert.equal(firewall.coverage[8].rows[0].source,'10.0.0.1');
+assert.equal(firewall.charts[0].values.reduce((a,b)=>a+b,0),23);
+for(const section of ['Firewall Policy Changes FG','Firewall Audit FG']){
+ assert.equal(analyze([section+'\nNo Relevant Data.']).coverage.find(s=>s.name===section).status,'No relevant data');
+ assert.equal(analyze([section+'\n1 unsupported row']).coverage.find(s=>s.name===section).status,'Needs review');
+}
+if(process.env.SOC_TEST_FIREWALL_PDF){
+ const pdfjs=await import('./vendor/pdf.mjs');
+ const pdf=await pdfjs.getDocument({data:new Uint8Array(fs.readFileSync(process.env.SOC_TEST_FIREWALL_PDF)),isEvalSupported:false,standardFontDataUrl:`${runtime}/pdfjs-dist/standard_fonts/`}).promise;
+ const pages=[];for(let i=1;i<=pdf.numPages;i++)pages.push(groupItems((await(await pdf.getPage(i)).getTextContent()).items));
+ model=analyze(pages,'source-report.pdf');
+ assert.equal(model.total,12183);assert.deepEqual(model.warnings,[]);
+ assert.deepEqual(model.coverage.map(s=>s.count),[12,15,0,1401,0,9598,13,1,11,0,1132]);
+ assert.equal(model.coverage[0].rows.length,2);assert.equal(model.coverage[8].rows.length,6);
+ assert.equal(model.coverage[8].rows.filter(r=>r.action==='login').reduce((a,r)=>a+r.count,0),7);
+ assert.equal(model.coverage[8].rows.filter(r=>r.action==='logout').reduce((a,r)=>a+r.count,0),4);
+ await pdf.destroy();
+}
 if(process.env.SOC_TEST_PDF){
  const pdfjs=await import(pathToFileURL(`${runtime}/pdfjs-dist/legacy/build/pdf.mjs`));
  const pdf=await pdfjs.getDocument({data:new Uint8Array(fs.readFileSync(process.env.SOC_TEST_PDF)),isEvalSupported:false,standardFontDataUrl:`${runtime}/pdfjs-dist/standard_fonts/`}).promise;const pages=[];
