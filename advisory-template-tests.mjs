@@ -1,0 +1,11 @@
+import assert from 'node:assert/strict';
+import {createRequire} from 'node:module';
+import {blocks,reportHtml,reportSections,advisoryDocx,markdown} from './advisory-template.mjs';
+import {blank} from './advisory-core.mjs';
+const require=createRequire(import.meta.url);globalThis.JSZip=require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES+'/jszip');
+const m=blank();m.title='<script>Example advisory</script>';m.summary='Verified example text';m.timeline='| Date | Event |\n| --- | --- |\n| 2026-10-18 | Example event |';m.detection='```\nvalue | contains\n```';m.sources=[['Example','https://example.com']];
+assert.equal(blocks('| text without end')[0].text,'| text without end');assert.throws(()=>blocks('| A | B |\n| bad |'));
+const html=reportHtml(m);assert.ok(!html.includes('<script>'));assert.ok(html.includes('&lt;script&gt;'));assert.ok(html.includes('data:image/png;base64,'));assert.ok(html.includes('CONTACT US'));
+assert.ok(reportSections(m).some(s=>s.title.startsWith('Timeline')));assert.ok(!reportSections(m).some(s=>s.title==='Co-active threats'));assert.ok(markdown(m).includes('| Date | Event |'));
+const z=await JSZip.loadAsync(await advisoryDocx(m)),xml=await z.file('word/document.xml').async('text');assert.ok(xml.includes('w:tblHeader'));assert.ok(xml.includes('Vairav Cyber Threat Intelligence Team'));assert.ok(z.file('word/media/logo.png'));assert.ok(z.file('word/header1.xml'));
+console.log('PASS: CTI cover, optional fields, native tables, code blocks, escaped text, logo and contact page.');
