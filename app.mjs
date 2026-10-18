@@ -1,3 +1,4 @@
+import {openPdfWithPassword} from './pdf-password.mjs';
 import * as pdfjs from './vendor/pdf.mjs';
 import {analyze,groupItems} from './analyzer.mjs';
 import {makeDocx} from './exporter.mjs';
@@ -9,11 +10,11 @@ function message(t,error=false){$('progress').textContent=t;$('progress').classN
 async function load(file){
  if(busy)return;if(!file)return;if(!/\.pdf$/i.test(file.name)){message('Choose a PDF file.',true);return;}if(file.size>25*1024*1024){message('The file exceeds the 25 MB limit.',true);return;}
  busy=true;$('pdf').disabled=true;$('editor').hidden=true;model=null;let pdf;
- try{message('Reading PDF locally…');const data=new Uint8Array(await file.arrayBuffer());pdf=await pdfjs.getDocument({data,isEvalSupported:false,standardFontDataUrl:new URL('./vendor/standard_fonts/',import.meta.url).href}).promise;if(pdf.numPages>250)throw Error('This report exceeds the 250-page limit. Split it into smaller reporting windows.');const pages=[];
+ try{message('Reading PDF locally…');const data=new Uint8Array(await file.arrayBuffer());pdf=await openPdfWithPassword(pdfjs,{data,isEvalSupported:false,standardFontDataUrl:new URL('./vendor/standard_fonts/',import.meta.url).href});if(pdf.numPages>250)throw Error('This report exceeds the 250-page limit. Split it into smaller reporting windows.');const pages=[];
  for(let i=1;i<=pdf.numPages;i++){message(`Extracting page ${i} of ${pdf.numPages}…`);const page=await pdf.getPage(i);pages.push(groupItems((await page.getTextContent()).items));page.cleanup();}
  model=analyze(pages,file.name);$('conclusion').value='Validate permitted remote-access traffic against approved access records and supporting endpoint and authentication logs. Track VPN reliability and field-mapping issues to closure. The supplied aggregates do not establish compromise or complete monitoring coverage.';if(!model.total||!model.coverage.some(s=>s.rows.length))throw Error('No supported report rows found. Use a digital Trident PDF in the supported layout. Scanned files need OCR.');
  $('raw').textContent=pages.map((s,i)=>`PDF PAGE ${i+1}\n${s}`).join('\n\n');render();message(`${file.name} · ${pdf.numPages} pages read locally.`);$('editor').hidden=false;document.querySelector('.empty-note').hidden=true;$('editor').scrollIntoView({behavior:'smooth',block:'start'});
- }catch(e){message(e.name==='PasswordException'?'This PDF is password protected. Upload an unlocked copy.':`Could not process the report: ${e.message}`,true);}finally{busy=false;$('pdf').disabled=false;if(pdf)await pdf.destroy();}
+ }catch(e){message(e.name==='AbortError'?e.message:`Could not process the report: ${e.message}`,true);}finally{busy=false;$('pdf').disabled=false;$('pdf').value='';if(pdf)await pdf.destroy();}
 }
 function render(){
  for(const id of ['client','from','to','risk','status','summary'])$(id).value=model[id];$('review').checked=false;$('download').disabled=true;$('sourceName').textContent=model.name;
