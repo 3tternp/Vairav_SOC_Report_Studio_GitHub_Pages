@@ -1,3 +1,4 @@
+import {signatureHtml} from './cti-signature.mjs';
 import {emailDraft} from './advisory-email.mjs';
 import {logoData} from './advisory-brand.mjs';
 import {templateCss} from './advisory-template.mjs';
@@ -32,3 +33,5 @@ $('png').onclick=async()=>{try{validate();$('png').disabled=true;$('exportMessag
 
 $('clearRecipients').onclick=()=>{$('emailRecipients').value='';$('emailStatus').textContent='Recipients cleared.';};
 $('emailDraft').onclick=async()=>{try{validate();$('emailDraft').disabled=true;const draft=emailDraft(model,$('emailRecipients').value,await advisoryDocx(model));download(draft,'message/rfc822','eml');$('emailStatus').textContent='Draft downloaded. Open it in your email application and review the Bcc recipients before sending. No email has been sent.';}catch(e){$('emailStatus').textContent=e.message;}finally{$('emailDraft').disabled=!$('reviewed').checked;}};
+
+$('emailSignature').innerHTML=signatureHtml();
