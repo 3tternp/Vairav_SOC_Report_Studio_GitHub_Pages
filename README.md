@@ -1,4 +1,4 @@
-# Vairav SOC Report Studio · v1.2.0
+# Vairav SOC Report Studio · v1.3.0
 
 Generate reviewed SOC executive reports and separate CTI advisories. The executive page accepts a single PDF or multiple reports for one client, creates a detailed local draft with source totals, and exports Word reports with native editable pie/bar charts. Optional AI summarizes all extracted report text through a protected backend.
 
@@ -16,7 +16,7 @@ Generate reviewed SOC executive reports and separate CTI advisories. The executi
 2. Use the repository-root `render.yaml`. It defines one **Free** Node 22 web service in Singapore. Keep the repository root as the working directory; `ai-service/server.mjs` imports `../ai-core.mjs`.
 3. Enter a **replacement** `OPENAI_API_KEY` privately in Render when prompted. Do not use a key previously disclosed in chat, source or logs. Render generates `SERVICE_TOKEN`; retrieve it privately from the service environment after creation.
 4. Review `EXPIRES_AT`: the supplied trial deadline is **2026-10-26T01:15:26Z**, or **26 October 2026 at 07:00:26 Nepal time**. New AI requests receive HTTP 410 after this deadline. Restarts do not extend it; requests already running may finish. This blocks API use, but does not delete the hosted service or revoke provider credentials.
-5. Deploy and wait for Render's healthy status. Open the service's `/health` path; expected JSON is `{"status":"ok","version":"1.2.0"}`. Health reveals no credentials or reports.
+5. Deploy and wait for Render's healthy status. Open the service's `/health` path; expected JSON is `{"status":"ok","version":"1.3.0"}`. Health reveals no credentials or reports.
 6. In the executive page, expand **AI service connection**, enter the actual Render URL ending in `/summarize` and the generated **SERVICE_TOKEN**, then acknowledge text sharing and generate. Never enter the provider API key in the page.
 7. Test with a nonsensitive PDF before sending confidential client content. Check source evidence, generated claims, limitations and counts, then export after analyst review.
 
@@ -25,6 +25,14 @@ Render Free may sleep after 15 idle minutes; the first request can take longer. 
 ### End the seven-day trial / reuse later
 
 After the trial, delete or suspend the Render service and revoke the trial provider key. GitHub Pages, Word generation and the source code remain. For future use, redeploy the Blueprint, set a new valid future `EXPIRES_AT`, supply a new provider key, and rotate the service token. An old deadline intentionally prevents accidental reactivation. No scheduled deletion has been configured.
+
+## Executive narrative and conclusions
+
+Executive summaries now provide fuller, report-specific discussion of activity volumes, remote access, VPN observations, firewall administration, reported threats, business implications and follow-up. The AI summary targets 6–9 paragraphs when evidence supports that detail; conclusions target 3–4 paragraphs with a scoped verdict, supporting observations, outstanding actions and assessment boundaries. Short or limited evidence is not padded with invented detail.
+
+Word and print/PDF exports use client-facing language. Technical extraction diagnostics, row counts, AI chunk details, raw quotation dumps and internal source IDs stay in the analyst workbench. Material information gaps and overlapping periods are still disclosed as security-assessment limitations. Editable Word charts remain available; editing instructions stay in this README rather than the client report.
+
+A no-suspicious-activity conclusion is limited to the reported monitoring categories and is withheld when suspicious events, unresolved validation items, material information gaps or overlapping reporting windows prevent that assessment. Analyst review remains required. Existing drafts must be regenerated after updating. For revised AI narrative behavior, deploy the latest backend commit on Render as well as refreshing the frontend.
 
 ## Executive report workflow
 
@@ -61,6 +69,6 @@ For a new Pages deployment, upload the repository contents and choose GitHub Act
 
 ## Validation
 
-Run `node batch-ai-tests.mjs` for batch handling, full-text chunks, checked evidence, mocked AI synthesis, authentication, CORS, health and expiry. Run `node tests.mjs` with JSZip available through `CODEX_PRIMARY_RUNTIME_NODE_MODULES` for parser and editable-chart export checks. Optional `SOC_TEST_PDF` / `SOC_TEST_FIREWALL_PDF` point to local, uncommitted test reports. Tests make no live AI calls.
+Run `node report-narrative-tests.mjs` for verdict logic and actual Word/print export content using bundled JSZip. GitHub Actions runs this alongside backend checks. Run `node batch-ai-tests.mjs` for batch handling, full-text chunks, checked evidence, mocked AI synthesis, authentication, CORS, health and expiry. Run `node tests.mjs` with JSZip available through `CODEX_PRIMARY_RUNTIME_NODE_MODULES` for parser and editable-chart export checks. Optional `SOC_TEST_PDF` / `SOC_TEST_FIREWALL_PDF` point to local, uncommitted test reports. Tests make no live AI calls.
 
 Actual supplied-report totals were verified as **12,271 + 12,183 = 24,454**, and combined pie/bar Word exports passed chart/workbook/source-reference checks. Live hosted AI validation remains pending Render deployment and secret provisioning.

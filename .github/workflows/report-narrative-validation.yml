@@ -1,0 +1,28 @@
+name: Validate executive report narratives
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'report-narrative*.mjs'
+      - 'batch.mjs'
+      - 'app.mjs'
+      - 'ai-service/server.mjs'
+      - 'batch-ai-tests.mjs'
+      - 'exporter.mjs'
+      - 'print.mjs'
+      - '.github/workflows/report-narrative-validation.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: node --check app.mjs
+      - run: node --check ai-service/server.mjs
+      - run: node batch-ai-tests.mjs
+      - run: node report-narrative-tests.mjs

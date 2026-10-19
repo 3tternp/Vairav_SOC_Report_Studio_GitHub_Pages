@@ -1,3 +1,4 @@
+import {buildExecutiveSummary,buildConclusion} from './report-narrative.mjs';
 import {analyze} from './analyzer.mjs';
 export function combineReports(sources){
  if(!sources.length)throw Error('Select at least one report.');
@@ -19,8 +20,7 @@ export function combineReports(sources){
  m.topFlows=[...flows.values()].sort((a,b)=>b.count-a.count).slice(0,8);
  const bySource=new Map();for(const r of flows.values())bySource.set(r.source,(bySource.get(r.source)||0)+r.count);const ranked=[...bySource].sort((a,b)=>b[1]-a[1]);if(ranked.length)m.charts.push({title:'SSH and RDP by source',labels:[...ranked.slice(0,3).map(r=>r[0]),'Other sources'],values:[...ranked.slice(0,3).map(r=>r[1]),ranked.slice(3).reduce((a,r)=>a+r[1],0)]});
  if(sources.length===1)m.charts=first.charts;
- m.summary=m.total?`${sources.length} report(s) for ${m.client} contain ${m.total.toLocaleString('en-US')} parsed event counts from ${m.from||'unconfirmed start'} to ${m.to||'unconfirmed end'}. Counts are additive log events, not unique sessions or users.\n\n${active.map(s=>`${s.name}: ${s.count.toLocaleString('en-US')} (${(100*s.count/m.total).toFixed(1)}%).`).join(' ')}\n\n${m.findings.filter(f=>f.severity!=='INFO').map(f=>`${f.title}: ${f.evidence} Action: ${f.action}`).join('\n\n')||'No rule-based findings were generated; verify the complete report content.'}\n\n${m.warnings.length?`${m.warnings.length} extraction or coverage warnings require review. `:''}These aggregates do not establish compromise or successful authentication.`:'No supported event totals were extracted. Read the source text and use the AI service to summarize other digital report formats. Charts are omitted rather than inferred.';
- m.summary+='\n\nSource index:\n'+sources.map(s=>`${s.id}: ${s.name} (${s.pages.length} pages; ${s.analysis.from||'period not extracted'} – ${s.analysis.to||'period not extracted'})`).join('\n');
+ m.summary=buildExecutiveSummary(m);m.conclusion=buildConclusion(m);
  return m;
 }
 export function sourceReport(pages,name,id){if(!pages.some(p=>p.trim()))throw Error(`${name}: no extractable text. Run OCR first.`);return {id,name,pages,analysis:analyze(pages,name)};}

@@ -2,6 +2,22 @@
 
 Versions follow semantic versioning. Dates are Asia/Kathmandu. Earlier work had no release tags; the 1.0.0 entry records that baseline, not a previously published Git tag.
 
+## [1.3.0] - 2026-10-19
+
+### Changed
+- Expanded report-specific executive summaries and conclusions covering observed activity, business implications, prioritized actions and a scoped evidence-based verdict.
+- AI narrative guidance targets 6–9 summary paragraphs and 3–4 conclusion paragraphs where the source evidence supports that detail.
+- Word and print/PDF exports omit software diagnostics, raw row counts, internal source IDs, source-quote dumps and chart-editing instructions. Material monitoring limitations remain in business language.
+- AI evidence and review notes remain available in a dedicated analyst-only inspector.
+- Existing editable charts, source counts, authentication, trial expiry and separate advisory workflow retained.
+
+### Added
+- Verdict checks for suspicious activity, incomplete evidence, overlapping periods and unspecified VPN outcomes.
+- Automated validation for narrative behavior, native editable Word charts and client-facing Word/print contents.
+
+### Deployment
+- Refresh the GitHub Pages frontend and redeploy the updated Render backend to activate the new AI narrative instructions. No live provider summary is included in automated tests.
+
 ## [1.2.0] - 2026-10-19
 
 ### Added
