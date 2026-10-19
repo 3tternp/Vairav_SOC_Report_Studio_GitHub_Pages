@@ -1,45 +1,66 @@
-# Vairav SOC Report Studio
+# Vairav SOC Report Studio · v1.2.0
 
-A static, browser-local report builder for digital Trident SOC PDFs. Upload a PDF, review extracted metrics and evidence-based draft findings, edit the narrative and priorities, select pie or bar charts, and download a Word report with native editable Office charts and embedded workbooks. Chart preview images provide a fallback for compatible viewers. Printing supports a static PDF copy.
+Generate reviewed SOC executive reports and separate CTI advisories. The executive page accepts a single PDF or multiple reports for one client, creates a detailed local draft with source totals, and exports Word reports with native editable pie/bar charts. Optional AI summarizes all extracted report text through a protected backend.
 
-## GitHub Pages deployment
+[Executive reports](https://3tternp.github.io/Vairav_SOC_Report_Studio_GitHub_Pages/) · [Threat advisories](https://3tternp.github.io/Vairav_SOC_Report_Studio_GitHub_Pages/advisory.html) · [Changelog](CHANGELOG.md)
 
-1. Create a repository such as `soc-report-studio` on GitHub.
-2. Upload the **contents** of this folder, including `vendor/`, `.nojekyll`, and `.github/workflows/pages.yml`. No customer PDFs or generated client reports are included.
-3. In Settings → Pages, set Source to **GitHub Actions**.
-4. Push to `main` or run **Deploy SOC Report Studio** from Actions.
-5. Open the URL shown by the deployment, normally `https://YOUR-USERNAME.github.io/soc-report-studio/`.
+## Current status
 
-Alternative: choose Deploy from a branch → `main` → `/ (root)` and remove the Actions workflow to avoid duplicate publishing methods.
+- The GitHub Pages interface is published; local PDF extraction and Word export work without an API key.
+- The AI backend source and Render Free deployment configuration are ready. AI is not active until a Render service is deployed, its secrets are configured, and its endpoint is entered in the executive page.
+- Live AI and Microsoft 365 sending require their respective administrator setup and validation. No API keys or client recipient lists are committed.
 
-All URLs are relative, so project Pages paths work. No build, backend, API key, account or external CDN is required at runtime. Serve over HTTPS or localhost; opening `index.html` directly with `file://` does not support module loading.
+## Deploy the AI backend on Render Free
 
-For local development: `python3 -m http.server 8000 --directory .`, then open http://localhost:8000.
+1. Sign in to [Render](https://dashboard.render.com), then choose **New → Blueprint** and connect this GitHub repository. Review the GitHub permissions requested by Render.
+2. Use the repository-root `render.yaml`. It defines one **Free** Node 22 web service in Singapore. Keep the repository root as the working directory; `ai-service/server.mjs` imports `../ai-core.mjs`.
+3. Enter a **replacement** `OPENAI_API_KEY` privately in Render when prompted. Do not use a key previously disclosed in chat, source or logs. Render generates `SERVICE_TOKEN`; retrieve it privately from the service environment after creation.
+4. Review `EXPIRES_AT`: the supplied trial deadline is **2026-10-26T01:15:26Z**, or **26 October 2026 at 07:00:26 Nepal time**. New AI requests receive HTTP 410 after this deadline. Restarts do not extend it; requests already running may finish. This blocks API use, but does not delete the hosted service or revoke provider credentials.
+5. Deploy and wait for Render's healthy status. Open the service's `/health` path; expected JSON is `{"status":"ok","version":"1.2.0"}`. Health reveals no credentials or reports.
+6. In the executive page, expand **AI service connection**, enter the actual Render URL ending in `/summarize` and the generated **SERVICE_TOKEN**, then acknowledge text sharing and generate. Never enter the provider API key in the page.
+7. Test with a nonsensitive PDF before sending confidential client content. Check source evidence, generated claims, limitations and counts, then export after analyst review.
 
-## Supported report format
+Render Free may sleep after 15 idle minutes; the first request can take longer. Hosting is free within Render's allowances; AI provider usage is billed separately. Set project spending controls. The service accepts one active generation at a time and returns 429 for concurrent requests. A CORS allowlist is not authentication; keep the service token private. See [AI setup and data handling](AI-SETUP.md).
 
-The parser recognizes the eleven exact Trident headings used in the supplied report: Firewall Policy Changes FG, SSH Authentication Events, Suspicious Connection Internal to External, SSH Connections CP, RDP Logon, Third Party VPN, VPN Connection CP, Telnet Connection CP, Firewall Audit FG, Suspicious Connection from External IP to Internal IP Addresses, and RDP Connection CP.
+### End the seven-day trial / reuse later
 
-Recognized rows are aggregated by their displayed Count field. PDF page numbers shown in the app are physical PDF page numbers, including the cover and contents. Missing sections and unsupported rows generate review warnings. Unknown firewall policy/audit layouts are not silently counted. Scanned/image PDFs require OCR elsewhere. PDFs are limited to 25 MB and 250 pages. This is a deterministic template-based analyzer, not a general-purpose AI PDF summarizer or an incident verdict engine.
+After the trial, delete or suspend the Render service and revoke the trial provider key. GitHub Pages, Word generation and the source code remain. For future use, redeploy the Blueprint, set a new valid future `EXPIRES_AT`, supply a new provider key, and rotate the service token. An old deadline intentionally prevents accidental reactivation. No scheduled deletion has been configured.
 
-The app identifies private/public address patterns for review; an external destination is not automatically malicious. It does not query threat intelligence. Accepted connections do not prove authenticated sessions. Success VPN records do not prove recovery order. Users must review extraction, dates, priorities and narrative before export. PDF totals may reflect overlapping use cases and are not unique session counts.
+## Executive report workflow
+
+1. Select **1–10 digital PDFs** for the same client: up to **25 MB per PDF**, **100 MB per batch**, **250 pages per PDF**, and **500 pages total**. Enter each PDF's password when prompted. Scans/images require OCR first.
+2. Review counts, findings, reporting periods and extraction warnings. Identical files are rejected. Overlapping periods warn of double-counting; counts are additive log events, not unique sessions/users. Different extracted client names block combination; verify identity manually for unrecognized formats.
+3. Optionally run AI. Every extracted page is chunked, analyzed and synthesized with parsed totals. AI requests are limited to 500,000 extracted characters; oversized requests are rejected without silent truncation. Images are not analyzed. Evidence quotes are checked against their cited pages, but all generated claims still require analyst review.
+4. Edit narrative, findings and conclusion. Choose pie or bar, confirm review, and download Word or print to PDF. AI never changes the parsed chart values.
+
+The deterministic parser recognizes eleven Trident headings: Firewall Policy Changes FG, SSH Authentication Events, Suspicious Connection Internal to External, SSH Connections CP, RDP Logon, Third Party VPN, VPN Connection CP, Telnet Connection CP, Firewall Audit FG, Suspicious Connection from External IP to Internal IP Addresses, and RDP Connection CP. Unsupported rows and missing sections remain visible as warnings. Other digital formats can use AI but do not receive invented chart totals. Accepted traffic does not prove successful authentication or compromise.
 
 ## Data handling
 
-PDF parsing, chart creation and DOCX generation occur in browser memory. The app uses no analytics, cookies, local storage, report upload endpoint or third-party runtime requests. Clearing the report removes app references; it cannot erase downloaded files or guarantee memory zeroization. Hosting providers still receive ordinary page requests. The app does not encrypt generated reports or add access control. Keep downloaded reports under your organization's normal handling controls.
+PDF parsing, charts and Word generation run in browser memory. Only the explicit AI action sends extracted text to the configured backend and its provider. Backend and provider access controls, logging and retention settings must meet your organization's requirements. The supplied service does not deliberately persist reports and uses OpenAI Responses with `store:false`, which does not override provider retention policies. Credentials are not saved to browser storage. Clearing the app cannot erase downloaded files or guarantee memory zeroization.
 
-## Word charts
+## Editable Word charts
 
-Use Microsoft Word desktop: right-click a chart → Edit Data. Embedded `.xlsx` files carry the editable source data. Word web, Google Docs and mobile/preview viewers can differ in chart support. PDF exports are static. Original chart data remains tied to the PDF; changing findings does not change extracted counts.
+Use Word desktop → right-click chart → **Edit Data**. Embedded `.xlsx` workbooks contain the editable data. Web/mobile viewers may differ; PDF and chart preview images are static. Editing narrative does not change extracted values.
 
-## Source files
+## Separate advisory page
 
-- `index.html`, `style.css`, `app.mjs`: interface and upload/export workflow.
-- `analyzer.mjs`: PDF text reconstruction and deterministic analysis.
-- `exporter.mjs`: OOXML Word/chart/workbook generation.
-- `vendor/`: local PDF.js 4.10.38 and JSZip, including third-party licenses.
-- `.github/workflows/pages.yml`: GitHub Pages deployment.
+The CTI workflow stays separate from executive reports. See [advisory guide](ADVISORY-README.md), [CTI template](CTI-TEMPLATE.md) and [Microsoft 365 setup](MICROSOFT365-SETUP.md). Recipients are entered manually; do not store client email lists in this repository. The existing Microsoft 365 flow requires an active signed-in browser; GitHub Pages alone does not run background email campaigns.
+
+## Source and hosting
+
+- `app.mjs`, `index.html`, `style.css`: executive interface.
+- `analyzer.mjs`, `batch.mjs`, `pdf-password.mjs`: extraction, aggregation and password prompts.
+- `exporter.mjs`, `print.mjs`: editable Word charts and printable reports.
+- `ai-core.mjs`, `ai-service/server.mjs`, `render.yaml`: AI processing and protected deployment.
+- `VERSION`, `CHANGELOG.md`: release version/history.
+- `vendor/`: local PDF.js/JSZip and license files; advisory PDF library.
+- `.github/workflows/pages.yml`: static GitHub Pages deployment. GitHub Pages does not execute the Node service.
+
+For a new Pages deployment, upload the repository contents and choose GitHub Actions in Settings → Pages. All frontend paths are relative. For local frontend development: `python3 -m http.server 8000`, then open `http://localhost:8000`. Serve over HTTP(S), not `file://`.
 
 ## Validation
 
-`tests.mjs` can run under Node with the JSZip package available. It verifies the supplied report's expected counts from an external local PDF path, flags unsupported inputs, and exports a DOCX for layout verification. Test fixtures contain no customer report data. Set `SOC_TEST_PDF` and `SOC_TEST_OUT` when running it.
+Run `node batch-ai-tests.mjs` for batch handling, full-text chunks, checked evidence, mocked AI synthesis, authentication, CORS, health and expiry. Run `node tests.mjs` with JSZip available through `CODEX_PRIMARY_RUNTIME_NODE_MODULES` for parser and editable-chart export checks. Optional `SOC_TEST_PDF` / `SOC_TEST_FIREWALL_PDF` point to local, uncommitted test reports. Tests make no live AI calls.
+
+Actual supplied-report totals were verified as **12,271 + 12,183 = 24,454**, and combined pie/bar Word exports passed chart/workbook/source-reference checks. Live hosted AI validation remains pending Render deployment and secret provisioning.

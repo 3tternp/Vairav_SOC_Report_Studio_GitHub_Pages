@@ -1,0 +1,24 @@
+# Vairav SOC Report Studio v1.2.0. No credentials belong in this file.
+services:
+  - type: web
+    name: vairav-executive-ai
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: node --check ai-service/server.mjs
+    startCommand: node ai-service/server.mjs
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: '22'
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: SERVICE_TOKEN
+        generateValue: true
+      - key: OPENAI_MODEL
+        value: gpt-4.1
+      - key: ALLOWED_ORIGIN
+        value: https://3tternp.github.io
+      # Fixed deadline survives restarts. Change deliberately for future reuse.
+      - key: EXPIRES_AT
+        value: '2026-10-26T01:15:26Z'

@@ -21,13 +21,16 @@ async function openai(instructions,input){
  const data=await response.json();if(data.status!=='completed')throw Error('AI output incomplete. Reduce the report batch.');const text=data.output?.flatMap(o=>o.content||[]).filter(c=>c.type==='output_text').map(c=>c.text).join('');return JSON.parse(text);
 }
 export function createServer(){let active=false;return http.createServer(async(req,res)=>{
- const origin=process.env.ALLOWED_ORIGIN;res.setHeader('Cache-Control','no-store');res.setHeader('Vary','Origin');
+ res.setHeader('Cache-Control','no-store');
+ if(req.method==='GET'&&req.url==='/health'){res.writeHead(200,{'Content-Type':'application/json'});res.end(JSON.stringify({status:'ok',version:'1.2.0'}));return;}
+ const origin=process.env.ALLOWED_ORIGIN;res.setHeader('Vary','Origin');
  if(!origin||req.headers.origin!==origin){res.writeHead(403);res.end();return;}
  res.setHeader('Access-Control-Allow-Origin',origin);res.setHeader('Access-Control-Allow-Headers','Content-Type, Authorization');res.setHeader('Access-Control-Allow-Methods','POST, OPTIONS');
  if(req.method==='OPTIONS'){res.writeHead(204);res.end();return;}
  const expected=Buffer.from(`Bearer ${process.env.SERVICE_TOKEN||''}`),actual=Buffer.from(req.headers.authorization||'');
  if(!process.env.SERVICE_TOKEN||process.env.SERVICE_TOKEN.length<32||expected.length!==actual.length||!timingSafeEqual(expected,actual)){res.writeHead(401);res.end();return;}
  if(req.method!=='POST'||req.url!=='/summarize'){res.writeHead(404);res.end();return;}
+ const expiry=process.env.EXPIRES_AT;if(expiry&&(!Number.isFinite(Date.parse(expiry))||Date.now()>=Date.parse(expiry))){res.writeHead(410,{'Content-Type':'application/json'});res.end(JSON.stringify({error:'AI access window has ended or is invalid. Ask the administrator to configure a new window.'}));return;}
  if(active){res.writeHead(429);res.end();return;}
  active=true;try{if(!process.env.OPENAI_API_KEY)throw Error('Server AI key is not configured.');const buffers=[];let bytes=0;for await(const chunk of req){bytes+=chunk.length;if(bytes>4000000)throw Error('Request too large.');buffers.push(chunk);}const result=await summarize(JSON.parse(Buffer.concat(buffers).toString('utf8')),openai);res.setHeader('Content-Type','application/json');res.end(JSON.stringify(result));}catch(e){res.writeHead(400,{'Content-Type':'application/json'});res.end(JSON.stringify({error:e.message.startsWith('Unexpected')?'Invalid request or provider output.':e.message}));}finally{active=false;}
  });}

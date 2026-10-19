@@ -33,3 +33,9 @@ API references: https://developers.openai.com/api/reference/resources/responses/
 ## Validation
 
 Run `node batch-ai-tests.mjs`. Existing parser/Word chart checks remain in `tests.mjs`. No live provider calls are included in tests.
+
+## Render Free deployment (v1.2.0)
+
+The root `render.yaml` is a reusable Render Blueprint. Follow the [README deployment steps](README.md#deploy-the-ai-backend-on-render-free). It creates one Free Node web service and a random service token. The API provider key must be entered privately during deployment.
+
+`EXPIRES_AT` is an optional ISO timestamp environment variable. When set, an invalid or past timestamp blocks new summary requests with HTTP 410. The Blueprint sets `2026-10-26T01:15:26Z` for this seven-day trial. Change it explicitly for future reuse. `/health` remains available after expiry; expiry does not delete hosting, cancel a running generation or revoke provider keys. No scheduled service deletion has been created.
