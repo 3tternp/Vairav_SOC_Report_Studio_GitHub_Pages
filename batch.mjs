@@ -1,0 +1,26 @@
+import {analyze} from './analyzer.mjs';
+export function combineReports(sources){
+ if(!sources.length)throw Error('Select at least one report.');
+ const clients=[...new Set(sources.map(s=>s.analysis.client).filter(c=>c!=='Client name').map(c=>c.toLowerCase().trim()))];
+ if(clients.length>1)throw Error('Reports contain different client names. Process each client separately.');
+ const first=sources[0].analysis,m={...first,name:sources.map(s=>`${s.id}: ${s.name}`).join('; '),sources,findings:[],warnings:[],charts:[]};
+ m.coverage=first.coverage.map((s,i)=>{const parts=sources.map(r=>r.analysis.coverage[i]);return {...s,rows:parts.flatMap((p,j)=>p.rows.map(r=>({...r,sourceId:sources[j].id}))),count:parts.reduce((a,p)=>a+p.count,0),pages:parts.flatMap((p,j)=>p.pages.map(n=>`${sources[j].id}:p${n}`)),status:parts.some(p=>['Needs review','Missing'].includes(p.status))?'Needs review':parts.some(p=>p.count)?'Activity':'No relevant data'};});
+ m.risk=sources.some(s=>s.analysis.risk==='MEDIUM')?'MEDIUM':'REVIEW';
+ m.total=m.coverage.reduce((a,s)=>a+s.count,0);
+ m.client=sources.find(s=>s.analysis.client!=='Client name')?.analysis.client||'Client name';
+ const dates=sources.flatMap(s=>[s.analysis.from,s.analysis.to]).filter(x=>Number.isFinite(Date.parse(x))).sort((a,b)=>Date.parse(a)-Date.parse(b));
+ m.from=dates[0]||first.from;m.to=dates.at(-1)||first.to;
+ for(const s of sources){m.warnings.push(...s.analysis.warnings.map(w=>`${s.id}: ${w}`));m.findings.push(...s.analysis.findings.map(f=>({...f,id:`${s.id}-${f.id}`,evidence:`[${s.id}] ${f.evidence}`})));}
+ for(let i=0;i<sources.length;i++)for(let j=i+1;j<sources.length;j++){const a=sources[i].analysis,b=sources[j].analysis;if(Date.parse(a.from)<Date.parse(b.to)&&Date.parse(b.from)<Date.parse(a.to))m.warnings.push(`${sources[i].id} and ${sources[j].id}: reporting periods overlap. Combined counts may double-count events; use non-overlapping reports for totals.`);}
+ const active=m.coverage.filter(s=>s.count).sort((a,b)=>b.count-a.count);
+ if(active.length)m.charts.push({title:'Event counts by use case',labels:active.map(s=>s.name),values:active.map(s=>s.count)});
+ const vpn=m.coverage.find(s=>s.name==='Third Party VPN').rows,states=[...new Set(vpn.map(r=>r.status))];if(states.length)m.charts.push({title:'Third Party VPN status',labels:states,values:states.map(k=>vpn.filter(r=>r.status===k).reduce((a,r)=>a+r.count,0))});
+ const flows=new Map();for(const section of m.coverage.filter(s=>['SSH Connections CP','RDP Connection CP'].includes(s.name)))for(const r of section.rows){const protocol=section.name.startsWith('SSH')?'SSH':'RDP',key=[protocol,r.source,r.destination,r.action].join('|'),old=flows.get(key);flows.set(key,{...r,protocol,count:(old?.count||0)+r.count});}
+ m.topFlows=[...flows.values()].sort((a,b)=>b.count-a.count).slice(0,8);
+ const bySource=new Map();for(const r of flows.values())bySource.set(r.source,(bySource.get(r.source)||0)+r.count);const ranked=[...bySource].sort((a,b)=>b[1]-a[1]);if(ranked.length)m.charts.push({title:'SSH and RDP by source',labels:[...ranked.slice(0,3).map(r=>r[0]),'Other sources'],values:[...ranked.slice(0,3).map(r=>r[1]),ranked.slice(3).reduce((a,r)=>a+r[1],0)]});
+ if(sources.length===1)m.charts=first.charts;
+ m.summary=m.total?`${sources.length} report(s) for ${m.client} contain ${m.total.toLocaleString('en-US')} parsed event counts from ${m.from||'unconfirmed start'} to ${m.to||'unconfirmed end'}. Counts are additive log events, not unique sessions or users.\n\n${active.map(s=>`${s.name}: ${s.count.toLocaleString('en-US')} (${(100*s.count/m.total).toFixed(1)}%).`).join(' ')}\n\n${m.findings.filter(f=>f.severity!=='INFO').map(f=>`${f.title}: ${f.evidence} Action: ${f.action}`).join('\n\n')||'No rule-based findings were generated; verify the complete report content.'}\n\n${m.warnings.length?`${m.warnings.length} extraction or coverage warnings require review. `:''}These aggregates do not establish compromise or successful authentication.`:'No supported event totals were extracted. Read the source text and use the AI service to summarize other digital report formats. Charts are omitted rather than inferred.';
+ m.summary+='\n\nSource index:\n'+sources.map(s=>`${s.id}: ${s.name} (${s.pages.length} pages; ${s.analysis.from||'period not extracted'} – ${s.analysis.to||'period not extracted'})`).join('\n');
+ return m;
+}
+export function sourceReport(pages,name,id){if(!pages.some(p=>p.trim()))throw Error(`${name}: no extractable text. Run OCR first.`);return {id,name,pages,analysis:analyze(pages,name)};}

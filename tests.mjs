@@ -37,7 +37,7 @@ if(process.env.SOC_TEST_FIREWALL_PDF){
  await pdf.destroy();
 }
 if(process.env.SOC_TEST_PDF){
- const pdfjs=await import(pathToFileURL(`${runtime}/pdfjs-dist/legacy/build/pdf.mjs`));
+ const pdfjs=await import('./vendor/pdf.mjs');
  const pdf=await pdfjs.getDocument({data:new Uint8Array(fs.readFileSync(process.env.SOC_TEST_PDF)),isEvalSupported:false,standardFontDataUrl:`${runtime}/pdfjs-dist/standard_fonts/`}).promise;const pages=[];
  for(let i=1;i<=pdf.numPages;i++)pages.push(groupItems((await(await pdf.getPage(i)).getTextContent()).items));
  model=analyze(pages,'source-report.pdf');
