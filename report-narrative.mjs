@@ -1,6 +1,7 @@
 const number=n=>Number(n||0).toLocaleString('en-US');
 const list=items=>items.length>1?items.slice(0,-1).join(', ')+' and '+items.at(-1):items[0]||'';
 const friendly=name=>({'SSH Connections CP':'SSH connections','RDP Connection CP':'RDP connections','VPN Connection CP':'VPN connections','Third Party VPN':'third-party VPN activity','Firewall Policy Changes FG':'firewall policy changes','Firewall Audit FG':'firewall administrative activity','SSH Authentication Events':'SSH authentication events','Suspicious Connection Internal to External':'suspicious outbound connections','Suspicious Connection from External IP to Internal IP Addresses':'suspicious inbound connections','Telnet Connection CP':'Telnet connections','RDP Logon':'RDP logons'}[name]||name);
+const sourceType=name=>/cyberark/i.test(name)?'CyberArk PAM':/firewall/i.test(name)?'firewall governance':/active.?pc/i.test(name)?'endpoint inventory':/daily.?report/i.test(name)?'SOC daily monitoring':'supplemental security reporting';
 const get=(m,name)=>m.coverage.find(s=>s.name===name)||{rows:[],count:0,status:'Missing'};
 export function clientLimitations(m){
  const limitations=[];
@@ -36,6 +37,12 @@ export function buildExecutiveSummary(m){
  const threats=m.coverage.filter(s=>s.name.startsWith('Suspicious Connection'));
  if(threats.some(s=>s.count))paragraphs.push('Threat-focused network monitoring identified '+threats.filter(s=>s.count).map(s=>number(s.count)+' events in '+friendly(s.name)).join(' and ')+'. These observations require investigation of the related sources, destinations and security indicators. Their inclusion in a suspicious-connection category is a trigger for validation rather than proof of compromise.');
  else if(threats.length===2&&threats.every(s=>s.status==='No relevant data'))paragraphs.push('The reported inbound and outbound suspicious-connection categories contained no relevant activity. This is a category-specific observation and does not resolve other access-review items or provide assurance for systems and threats outside the reporting scope.');
+ const sourceTypes=[...new Set((m.sources||[]).map(s=>sourceType(s.name)))];
+ if(sourceTypes.length)paragraphs.splice(1,0,'Executive evidence base: this assessment draws on '+sourceTypes.join(', ')+' across '+(m.sources||[]).length+' submitted report'+((m.sources||[]).length===1?'':'s')+'. The leadership decision is not whether activity exists, but whether the responsible teams can demonstrate authorization, ownership and timely closure for the notable control evidence.');
+ const pam=get(m,'CyberArk PAM privileged sessions');
+ if(pam.count)paragraphs.push('Privileged-access oversight: '+number(pam.count)+' CyberArk PAM session counts were reported. Management should require confirmation that access approvals, session recordings and post-session reviews are complete for the destination systems represented in the source report.');
+ const generic=get(m,'Generic structured rows');
+ if(generic.count)paragraphs.push('Custom-report oversight: '+number(generic.count)+' displayed counts were extracted from a non-standard report layout. Treat this as decision support rather than a control conclusion until the report owner confirms the data definition, population and period covered.');
  const pending=[...new Map(m.findings.filter(f=>f.severity!=='INFO').map(f=>[f.title,f])).values()];
  if(pending.length)paragraphs.push('The principal management follow-up items are '+list(pending.map(f=>f.title.toLowerCase()))+'. '+pending.slice(0,3).map(f=>f.action).join(' ')+' These items should remain open until the responsible teams verify the supporting evidence and document the outcome.');
  const telnet=get(m,'Telnet Connection CP');if(telnet.count)paragraphs.push('The reports also recorded '+number(telnet.count)+' Telnet connection events. Confirm the operational requirement and endpoint roles, and review whether an encrypted administrative protocol can replace this access.');
