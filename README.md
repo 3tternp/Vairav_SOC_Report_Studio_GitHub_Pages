@@ -1,8 +1,8 @@
 # Vairav SOC Report Studio · v1.3.0
 
-Generate reviewed SOC executive reports and separate CTI advisories. The executive page accepts a single PDF or multiple reports for one client, creates a detailed local draft with source totals, and exports Word reports with native editable pie/bar charts. Optional AI summarizes all extracted report text through a protected backend.
+Generate reviewed SOC executive reports from one or multiple client PDFs. The application creates a detailed local draft with source totals and exports Word reports with native editable pie/bar charts. Optional AI summarizes extracted report text through a protected backend.
 
-[Executive reports](https://3tternp.github.io/Vairav_SOC_Report_Studio_GitHub_Pages/) · [Threat advisories](https://3tternp.github.io/Vairav_SOC_Report_Studio_GitHub_Pages/advisory.html) · [Changelog](CHANGELOG.md)
+[Executive reports](https://3tternp.github.io/Vairav_SOC_Report_Studio_GitHub_Pages/) · [Threat Advisory Studio](https://github.com/3tternp/Vairav_CTI_Advisory_Studio) · [Changelog](CHANGELOG.md)
 
 ## Current status
 
@@ -51,10 +51,6 @@ PDF parsing, charts and Word generation run in browser memory. Only the explicit
 
 Use Word desktop → right-click chart → **Edit Data**. Embedded `.xlsx` workbooks contain the editable data. Web/mobile viewers may differ; PDF and chart preview images are static. Editing narrative does not change extracted values.
 
-## Separate advisory page
-
-The CTI workflow stays separate from executive reports. See [advisory guide](ADVISORY-README.md), [CTI template](CTI-TEMPLATE.md) and [Microsoft 365 setup](MICROSOFT365-SETUP.md). Recipients are entered manually; do not store client email lists in this repository. The existing Microsoft 365 flow requires an active signed-in browser; GitHub Pages alone does not run background email campaigns.
-
 ## Source and hosting
 
 - `app.mjs`, `index.html`, `style.css`: executive interface.
@@ -62,7 +58,7 @@ The CTI workflow stays separate from executive reports. See [advisory guide](ADV
 - `exporter.mjs`, `print.mjs`: editable Word charts and printable reports.
 - `ai-core.mjs`, `ai-service/server.mjs`, `render.yaml`: AI processing and protected deployment.
 - `VERSION`, `CHANGELOG.md`: release version/history.
-- `vendor/`: local PDF.js/JSZip and license files; advisory PDF library.
+- `vendor/`: local PDF.js/JSZip and license files.
 - `.github/workflows/pages.yml`: static GitHub Pages deployment. GitHub Pages does not execute the Node service.
 
 For a new Pages deployment, upload the repository contents and choose GitHub Actions in Settings → Pages. All frontend paths are relative. For local frontend development: `python3 -m http.server 8000`, then open `http://localhost:8000`. Serve over HTTP(S), not `file://`.

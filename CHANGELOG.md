@@ -2,6 +2,11 @@
 
 Versions follow semantic versioning. Dates are Asia/Kathmandu. Earlier work had no release tags; the 1.0.0 entry records that baseline, not a previously published Git tag.
 
+## Unreleased
+
+### Changed
+- Moved the CTI Threat Advisory Studio, its Microsoft 365 delivery workflow and advisory-only PDF/export dependencies into the standalone `Vairav_CTI_Advisory_Studio` repository. This repository now contains only the SOC Executive Report Studio.
+
 ## [1.3.0] - 2026-10-19
 
 ### Changed

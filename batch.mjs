@@ -15,7 +15,7 @@ export function combineReports(sources){
  m.from=dates[0]||first.from;m.to=dates.at(-1)||first.to;
  for(const s of sources){m.warnings.push(...s.analysis.warnings.map(w=>`${s.id}: ${w}`));m.findings.push(...s.analysis.findings.map(f=>({...f,id:`${s.id}-${f.id}`,evidence:`[${s.id}] ${f.evidence}`})));}
  const sourceTotal=sources.reduce((sum,s)=>sum+s.analysis.coverage.reduce((n,c)=>n+c.count,0),0);
- m.integrity={sourceReports:sources.length,sourceTotal,combinedTotal:m.total,reconciled:sourceTotal===m.total,requiresReview:m.warnings.length>0,method:'Counts are deterministically summed from parsed source rows. This is a reconciliation check, not a statistical accuracy percentage.'};
+ m.integrity={sourceReports:sources.length,sourceTotal,combinedTotal:m.total,reconciled:sourceTotal===m.total,requiresReview:m.warnings.length>0,method:'Counts are deterministically summed from the source report records. This is a reconciliation check, not a statistical accuracy percentage.'};
  for(let i=0;i<sources.length;i++)for(let j=i+1;j<sources.length;j++){const a=sources[i].analysis,b=sources[j].analysis;if(Date.parse(a.from)<Date.parse(b.to)&&Date.parse(b.from)<Date.parse(a.to))m.warnings.push(`${sources[i].id} and ${sources[j].id}: reporting periods overlap. Combined counts may double-count events; use non-overlapping reports for totals.`);}
  const active=m.coverage.filter(s=>s.count).sort((a,b)=>b.count-a.count);
  if(active.length)m.charts.push({title:'Event counts by use case',labels:active.map(s=>s.name),values:active.map(s=>s.count)});
